@@ -52,15 +52,17 @@ class Mention {
 class Annotation {
   Annotation({
     required this.trigger,
+    required this.type,
+    required this.id,
     this.style,
-    this.id,
     this.display,
     this.disableMarkup = false,
     this.markupBuilder,
   });
 
+  String type;
+  String id;
   TextStyle? style;
-  String? id;
   String? display;
   String trigger;
   bool disableMarkup;

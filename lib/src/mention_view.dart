@@ -237,22 +237,23 @@ class FlutterMentionsState extends State<FlutterMentions> {
 
     // Loop over all the mention items and generate a suggestions matching list
     widget.mentions.forEach((element) {
-      // if matchAll is set to true add a general regex patteren to match with
-      if (element.matchAll) {
-        data['${element.trigger}([A-Za-z0-9])*'] = Annotation(
-          style: element.style,
-          id: null,
-          display: null,
-          trigger: element.trigger,
-          disableMarkup: element.disableMarkup,
-          markupBuilder: element.markupBuilder,
-        );
-      }
+      // // if matchAll is set to true add a general regex patteren to match with
+      // if (element.matchAll) {
+      //   data['${element.trigger}([A-Za-z0-9])*'] = Annotation(
+      //     style: element.style,
+      //     id: null,
+      //     display: null,
+      //     trigger: element.trigger,
+      //     disableMarkup: element.disableMarkup,
+      //     markupBuilder: element.markupBuilder,
+      //   );
+      // }
 
       element.data.forEach(
         (e) => data["${element.trigger}${e['display']}"] = e['style'] != null
             ? Annotation(
                 style: e['style'],
+                type: e['type'],
                 id: e['id'],
                 display: e['display'],
                 trigger: element.trigger,
@@ -261,6 +262,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
               )
             : Annotation(
                 style: element.style,
+                type: e['type'],
                 id: e['id'],
                 display: e['display'],
                 trigger: element.trigger,
@@ -407,12 +409,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
                     suggestionListMaxWidth: 300,
                     suggestionBuilder: list.suggestionBuilder,
                     suggestionListDecoration: widget.suggestionListDecoration,
-                    data: list.data.where((element) {
-                      final ele = element['display'].toLowerCase();
-                      final str = _selectedMention!.str.toLowerCase().replaceAll(RegExp(_pattern), '');
-
-                      return ele == str ? false : ele.contains(str);
-                    }).toList(),
+                    data: list.data,
                     onTap: (value) {
                       addMention(value, list);
                       showSuggestions.value = false;
