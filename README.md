@@ -49,7 +49,6 @@ To use this package you must first wrap your top most widget with `Portal` as th
 **FlutterMention**
 
 - `mentions: List<Mention>` - List of Mention that the user is allowed to triggered.
-- `suggestionPosition: SuggestionPosition` - Suggestion modal position, can be alligned to [Top] or [Bottom].
 - `onMentionAdd: Function(Map<String, dynamic>)` - Triggers when the suggestion was added by tapping on suggestion.
 - `suggestionListHeight: double` - Max height for the suggestion list. Defaults for 300.0.
 - `onMarkupChanged: Function(String)` - A Functioned which is triggered when ever the input changes but with the markup of the selected mentions.
@@ -93,7 +92,6 @@ Mention(
 ```dart
 FlutterMentions(
   key: key,
-  suggestionPosition: SuggestionPosition.Top,
   maxLines: 5,
   minLines: 1,
   mentions: [

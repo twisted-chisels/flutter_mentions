@@ -5,15 +5,11 @@ class FlutterMentions extends StatefulWidget {
     required this.mentions,
     Key? key,
     this.defaultText,
-    this.suggestionPosition = SuggestionPosition.Bottom,
     this.suggestionListHeight = 300.0,
     this.onMarkupChanged,
     this.onMentionAdd,
     this.onSearchChanged,
-    this.leading = const [],
-    this.trailing = const [],
     this.suggestionListDecoration,
-    this.focusNode,
     this.decoration = const InputDecoration(),
     this.keyboardType,
     this.textInputAction,
@@ -63,19 +59,6 @@ class FlutterMentions extends StatefulWidget {
   /// List of Mention that the user is allowed to triggered
   final List<Mention> mentions;
 
-  /// Leading widgets to show before teh Input box, helps preseve the size
-  /// size for the Portal widget size.
-  final List<Widget> leading;
-
-  /// Trailing widgets to show before teh Input box, helps preseve the size
-  /// size for the Portal widget size.
-  final List<Widget> trailing;
-
-  /// Suggestion modal position, can be alligned to top or bottom.
-  ///
-  /// Defaults to [SuggestionPosition.Bottom].
-  final SuggestionPosition suggestionPosition;
-
   /// Triggers when the suggestion was added by tapping on suggestion.
   final Function(Map<String, dynamic>)? onMentionAdd;
 
@@ -94,9 +77,6 @@ class FlutterMentions extends StatefulWidget {
 
   /// Decoration for the Suggestion list.
   final BoxDecoration? suggestionListDecoration;
-
-  /// Focus node for controlling the focus of the Input.
-  final FocusNode? focusNode;
 
   /// Should selecting a suggestion add a space at the end or not.
   final bool appendSpaceOnAdd;
@@ -250,6 +230,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
   ValueNotifier<bool> showSuggestions = ValueNotifier(false);
   LengthMap? _selectedMention;
   String _pattern = '';
+  late FocusNode textFocusNode;
 
   Map<String, Annotation> mapToAnotation() {
     final data = <String, Annotation>{};
@@ -299,8 +280,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
       _selectedMention = null;
     });
 
-    final _list = widget.mentions
-        .firstWhere((element) => selectedMention.str.contains(element.trigger));
+    final _list = widget.mentions.firstWhere((element) => selectedMention.str.contains(element.trigger));
 
     // find the text by range and replace with the new value.
     controller!.text = controller!.value.text.replaceRange(
@@ -312,11 +292,10 @@ class FlutterMentionsState extends State<FlutterMentions> {
     if (widget.onMentionAdd != null) widget.onMentionAdd!(value);
 
     // Move the cursor to next position after the new mentioned item.
-    var nextCursorPosition =
-        selectedMention.start + 1 + value['display']?.length as int? ?? 0;
+    var nextCursorPosition = selectedMention.start + 1 + value['display']?.length as int? ?? 0;
     if (widget.appendSpaceOnAdd) nextCursorPosition++;
-    controller!.selection =
-        TextSelection.fromPosition(TextPosition(offset: nextCursorPosition));
+    controller!.selection = TextSelection.fromPosition(TextPosition(offset: nextCursorPosition));
+    textFocusNode.requestFocus();
   }
 
   void suggestionListerner() {
@@ -329,8 +308,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
 
       // split on each word and generate a list with start & end position of each word.
       controller!.value.text.split(RegExp(r'(\s)')).forEach((element) {
-        lengthMap.add(
-            LengthMap(str: element, start: _pos, end: _pos + element.length));
+        lengthMap.add(LengthMap(str: element, start: _pos, end: _pos + element.length));
 
         _pos = _pos + element.length + 1;
       });
@@ -338,8 +316,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
       final val = lengthMap.indexWhere((element) {
         _pattern = widget.mentions.map((e) => e.trigger).join('|');
 
-        return element.end == cursorPos &&
-            element.str.toLowerCase().contains(RegExp(_pattern));
+        return element.end == cursorPos && element.str.toLowerCase().contains(RegExp(_pattern));
       });
 
       showSuggestions.value = val != -1;
@@ -385,6 +362,8 @@ class FlutterMentionsState extends State<FlutterMentions> {
 
     controller!.addListener(inputListeners);
 
+    textFocusNode = FocusNode();
+
     super.initState();
   }
 
@@ -392,6 +371,8 @@ class FlutterMentionsState extends State<FlutterMentions> {
   void dispose() {
     controller!.removeListener(suggestionListerner);
     controller!.removeListener(inputListeners);
+
+    textFocusNode.dispose();
 
     super.dispose();
   }
@@ -407,31 +388,28 @@ class FlutterMentionsState extends State<FlutterMentions> {
   Widget build(BuildContext context) {
     // Filter the list based on the selection
     final list = _selectedMention != null
-        ? widget.mentions.firstWhere(
-            (element) => _selectedMention!.str.contains(element.trigger))
+        ? widget.mentions.firstWhere((element) => _selectedMention!.str.contains(element.trigger))
         : widget.mentions[0];
 
     return Container(
-      child: PortalEntry(
-        portalAnchor: widget.suggestionPosition == SuggestionPosition.Bottom
-            ? Alignment.topCenter
-            : Alignment.bottomCenter,
-        childAnchor: widget.suggestionPosition == SuggestionPosition.Bottom
-            ? Alignment.bottomCenter
-            : Alignment.topCenter,
-        portal: ValueListenableBuilder(
+      child: PortalTarget(
+        anchor: const Aligned(
+          follower: Alignment.bottomLeft,
+          target: Alignment.topLeft,
+        ),
+        portalFollower: ValueListenableBuilder(
           valueListenable: showSuggestions,
           builder: (BuildContext context, bool show, Widget? child) {
+            // return Text('show: $show &&& widget.hideSuggestionList: ${widget.hideSuggestionList}');
             return show && !widget.hideSuggestionList
                 ? OptionList(
                     suggestionListHeight: widget.suggestionListHeight,
+                    suggestionListMaxWidth: 300,
                     suggestionBuilder: list.suggestionBuilder,
                     suggestionListDecoration: widget.suggestionListDecoration,
                     data: list.data.where((element) {
                       final ele = element['display'].toLowerCase();
-                      final str = _selectedMention!.str
-                          .toLowerCase()
-                          .replaceAll(RegExp(_pattern), '');
+                      final str = _selectedMention!.str.toLowerCase().replaceAll(RegExp(_pattern), '');
 
                       return ele == str ? false : ele.contains(str);
                     }).toList(),
@@ -445,13 +423,12 @@ class FlutterMentionsState extends State<FlutterMentions> {
         ),
         child: Row(
           children: [
-            ...widget.leading,
             Expanded(
               child: TextField(
+                focusNode: textFocusNode,
                 maxLines: widget.maxLines,
                 minLines: widget.minLines,
                 maxLength: widget.maxLength,
-                focusNode: widget.focusNode,
                 keyboardType: widget.keyboardType,
                 keyboardAppearance: widget.keyboardAppearance,
                 textInputAction: widget.textInputAction,
@@ -483,7 +460,6 @@ class FlutterMentionsState extends State<FlutterMentions> {
                 controller: controller,
               ),
             ),
-            ...widget.trailing,
           ],
         ),
       ),
