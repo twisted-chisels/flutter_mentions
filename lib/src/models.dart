@@ -60,7 +60,7 @@ class Annotation {
     this.markupBuilder,
   });
 
-  String type;
+  dynamic type;
   String id;
   TextStyle? style;
   String? display;
