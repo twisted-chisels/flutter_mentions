@@ -231,6 +231,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
   LengthMap? _selectedMention;
   String _pattern = '';
   late FocusNode textFocusNode;
+  Map<String, Annotation> selectedAnnotations = {};
 
   Map<String, Annotation> mapToAnotation() {
     final data = <String, Annotation>{};
@@ -248,6 +249,13 @@ class FlutterMentionsState extends State<FlutterMentions> {
       //     markupBuilder: element.markupBuilder,
       //   );
       // }
+
+      selectedAnnotations.keys.forEach((currKey) {
+        var currAnnotation = selectedAnnotations[currKey];
+        if (currAnnotation != null) {
+          data[currKey] = currAnnotation;
+        }
+      });
 
       element.data.forEach(
         (e) => data["${element.trigger}${e['display']}"] = e['style'] != null
@@ -284,11 +292,23 @@ class FlutterMentionsState extends State<FlutterMentions> {
 
     final _list = widget.mentions.firstWhere((element) => selectedMention.str.contains(element.trigger));
 
+    var key = "${_list.trigger}${value['display']}";
+
+    selectedAnnotations[key] = Annotation(
+      style: list?.style,
+      type: value['type'],
+      id: value['id'],
+      display: value['display'],
+      trigger: list?.trigger ?? '@',
+      disableMarkup: list?.disableMarkup ?? false,
+      markupBuilder: list?.markupBuilder,
+    );
+
     // find the text by range and replace with the new value.
     controller!.text = controller!.value.text.replaceRange(
       selectedMention.start,
       selectedMention.end,
-      "${_list.trigger}${value['display']}${widget.appendSpaceOnAdd ? ' ' : ''}",
+      widget.appendSpaceOnAdd ? '$key ' : key,
     );
 
     if (widget.onMentionAdd != null) widget.onMentionAdd!(value);
@@ -300,7 +320,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
     textFocusNode.requestFocus();
   }
 
-  void suggestionListerner() {
+  void suggestionListener() {
     final cursorPos = controller!.selection.baseOffset;
 
     if (cursorPos >= 0) {
@@ -360,7 +380,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
     }
 
     // setup a listener to figure out which suggestions to show based on the trigger
-    controller!.addListener(suggestionListerner);
+    controller!.addListener(suggestionListener);
 
     controller!.addListener(inputListeners);
 
@@ -371,7 +391,7 @@ class FlutterMentionsState extends State<FlutterMentions> {
 
   @override
   void dispose() {
-    controller!.removeListener(suggestionListerner);
+    controller!.removeListener(suggestionListener);
     controller!.removeListener(inputListeners);
 
     textFocusNode.dispose();
